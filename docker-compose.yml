@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nrrd-to-video-slicer:latest
+    container_name: nrrd_slicer_dev
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    working_dir: /app

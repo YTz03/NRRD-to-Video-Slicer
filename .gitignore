@@ -1,0 +1,33 @@
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing and Code Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Media and Generated Outputs
+*.mp4
+output/
+outputs/
+
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
