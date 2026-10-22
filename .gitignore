@@ -20,6 +20,10 @@ htmlcov/
 output/
 outputs/
 
+# Volumetric Datasets (binary data files)
+*.nrrd
+data/*.nrrd
+
 # macOS System Files
 .DS_Store
 .AppleDouble
