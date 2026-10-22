@@ -59,7 +59,7 @@ The quality of the software engineering takes precedence over the projection mat
 
 ### 2.1 Functional Requirements (FR)
 * **FR-1 (CLI Parsing):** The system shall accept exactly three command-line arguments: input `.nrrd` path, input `.csv` path, and output `.mp4` path, validating that the input files exist, that all three paths have the expected extensions, and that the output directory is writable, before execution. On any failure it shall print a usage/diagnostic message and exit with code 1.
-* **FR-2 (Volumetric Ingestion):** The system shall parse `.nrrd` files into a 3D matrix $M$ of dimensions $sx \times sy \times sz$ (where $1 \le sx, sy, sz < 2^{10}$) supporting unsigned integer formats (`uint8`, `uint16`, `uint32`). The array shall be indexed `M[x][y][z]`, with the first NRRD axis as $x$. Volumes that are not 3D, exceed the size limits, or use another data type shall be rejected with a clear error (exit code 2).
+* **FR-2 (Volumetric Ingestion):** The system shall parse `.nrrd` files into a 3D matrix $M$ of dimensions $sx \times sy \times sz$ (where $1 \le sx, sy, sz < 2^{10}$) supporting unsigned integer formats (`uint8`, `uint16`, `uint32`). Signed integer NRRD files (`int8`, `int16`, `int32`) whose voxel values are all non-negative ($\min(M) \ge 0$, such as 16-bit `short` MRI scans) shall be cast to their corresponding unsigned integer format (`uint8`, `uint16`, `uint32`). The array shall be indexed `M[x][y][z]`, with the first NRRD axis as $x$. Volumes that are not 3D, exceed the size limits, contain negative voxel values, or use another data type (such as floating-point) shall be rejected with a clear error (exit code 2).
 * **FR-3 (Plane List Parsing):** The system shall read the `.csv` file with comma-separated columns, one plane per row, in file order:
   * Layout: 13 columns: `Number of Point, x1,y1,z1, x2,y2,z2, x3,y3,z3, x4,y4,z4`.
   * The first line is a header and is skipped (a first line whose first cell is non-numeric). Blank lines are ignored.
@@ -68,7 +68,7 @@ The quality of the software engineering takes precedence over the projection mat
   * Trapezoid (`4`): points are $a', b, a'', c$ in columns 2–13, so that the two legs are $a' \to b$ and $a'' \to c$.
   * Coordinates are real numbers in voxel space (§1.4). They may be negative or exceed the volume bounds; such points are handled by FR-6.
 * **FR-4 (Plane Validation):** All rows shall be validated before any frame is rendered.
-  * **Structural errors abort the run:** a point count other than 3 or 4, a point count that does not match the number of filled coordinate cells, a missing or non-numeric coordinate, or a plane whose $D_{ab}$ or $D_{bc}$ rounds to less than 1 pixel.
+  * **Structural errors abort the run:** a point count other than 3 or 4, a point count that does not match the number of filled coordinate cells, a missing or non-numeric coordinate, collinear points with zero area, or a plane whose $D_{ab}$ or $D_{bc}$ rounds to less than 1 pixel.
   * **Isosceles check:** the leg difference $\delta = |L_1 - L_2| / \max(L_1, L_2)$ is computed from the two legs ($dist(a,b)$ and $dist(a,c)$ for a triangle; $dist(a',b)$ and $dist(a'',c)$ for a trapezoid).
     * $\delta \le 1\%$: accepted silently.
     * $1\% < \delta \le 10\%$: the plane is projected, and a warning naming the row number and $\delta$ is printed.
@@ -114,7 +114,7 @@ AppController ──► VolumeData         .nrrd ──► M (read-only array), 
 * **Design Benefit (Decoupling):** If future requirements introduce new medical imaging formats (e.g., DICOM), only `VolumeData` requires modification.
 * **Responsibilities:**
   * Load `.nrrd` files using `pynrrd`, with the first NRRD axis as $x$ so the array is indexed `M[x][y][z]` (FR-2).
-  * Validate grid constraints ($1 \le sx, sy, sz < 2^{10}$) and unsigned integer data types (`uint8`, `uint16`, `uint32`); raise a `VolumeError` (exit code 2) for any violation.
+  * Validate grid constraints ($1 \le sx, sy, sz < 2^{10}$) and unsigned integer data types (`uint8`, `uint16`, `uint32`, promoting non-negative `int8`/`int16`/`int32` volumes to unsigned); raise a `VolumeError` (exit code 2) for any violation.
   * Expose the 3D volume as a read-only in-memory `numpy.ndarray` ($M$).
   * Expose the maximum value of the volume, computed once at load time, used for the global brightness scaling (FR-8).
 
@@ -191,7 +191,7 @@ To guarantee high-speed vectorized execution and strict interface contracts betw
 ### 4.4 Domain Exception Hierarchy
 * **Data Type:** Custom exception classes inheriting from a common base class `SlicerError(Exception)`:
   * `InputError` – bad CLI arguments, missing files, wrong extensions, or unwritable output path (exit code `1`, FR-1).
-  * `VolumeError` – non-3D volume, dimensions outside $1 \le s < 2^{10}$, or unsupported data type (exit code `2`, FR-2).
+  * `VolumeError` – non-3D volume, dimensions outside $1 \le s < 2^{10}$, negative voxel values, or unsupported data type (exit code `2`, FR-2).
   * `PlaneError` – malformed CSV row, leg or coplanarity deviation above 10%, or degenerate dimensions $< 1$ pixel, carrying `row_index` and reason (exit code `2`, FR-3, FR-4).
   * `EncodingError` – video writer initialization or frame write failure (exit code `3`, FR-9).
 * **Interface Rationale:** Allows lower-level modules to signal failures cleanly without calling `sys.exit()` themselves, keeping them unit-testable while `AppController` translates each exception into its required exit code (NFR-3).
@@ -269,14 +269,14 @@ To achieve $\ge 100\text{ FPS}$ on $500^3$ volumes (NFR-1), `ProjectionEngine.pr
    x1         = x - (W - d12) / 2.0                       # (N, W)
    mask_shape = (x1 >= 0.0) & (x1 <= d12)                 # (N, W) bool
    ```
-3. **3D Sample Coordinates & Nearest-Neighbor Rounding (shape `(N, W, 3)`):**
+3. **3D Sample Coordinates & Nearest-Neighbor Rounding (shape `(N, W)`):**
    ```python
-   P   = a1[:, None, :] + x1[:, :, None] * dp[:, None, :] # (N, W, 3)
-   idx = np.rint(P).astype(np.intp)                       # (N, W, 3)
+   ix = np.rint(a1[:, 0:1] + x1 * dp[:, 0:1]).astype(np.intp)
+   iy = np.rint(a1[:, 1:2] + x1 * dp[:, 1:2]).astype(np.intp)
+   iz = np.rint(a1[:, 2:3] + x1 * dp[:, 2:3]).astype(np.intp)
    ```
 4. **Volume Boundary Mask (shape `(N, W)`):**
    ```python
-   ix, iy, iz = idx[:, :, 0], idx[:, :, 1], idx[:, :, 2]
    mask_vol   = (ix >= 0) & (ix < sx) & (iy >= 0) & (iy < sy) & (iz >= 0) & (iz < sz)
    valid      = mask_shape & mask_vol                     # (N, W) bool
    ```
@@ -306,7 +306,7 @@ The system is validated and benchmarked against two complementary dataset catego
 
 ### 7.1 Shared Classroom Dataset (End-to-End & Visual Verification)
 A shared collection of real-world 3D volumetric `.nrrd` files paired with 13-column `.csv` plane trajectory files:
-* **Volumetric Scans (`.nrrd`):** Multiple 3D medical and volumetric datasets spanning different grid resolutions within $1 \le sx, sy, sz < 2^{10}$ and unsigned integer bit depths (`uint8`, `uint16`, `uint32`, FR-2).
+* **Volumetric Scans (`.nrrd`):** Multiple 3D medical and volumetric datasets spanning different grid resolutions within $1 \le sx, sy, sz < 2^{10}$ and unsigned integer bit depths (`uint8`, `uint16`, `uint32`, including non-negative `short` MRI scans promoted to `uint16`, FR-2).
 * **Plane Trajectories (`.csv`):** Curated sequences of 3-point (triangle) and 4-point (trapezoid) rows exercising:
   * Axis-aligned sweeps (along X, Y, and Z) and arbitrary oblique slicing angles.
   * Mixed triangle (`3`) and trapezoid (`4`) rows within the same CSV file, including varying plane dimensions to exercise centered canvas padding (FR-7).
@@ -320,7 +320,7 @@ Generated programmatically by the test and benchmark suite so unit and performan
 |---|---|---|
 | **Analytical Unit-Test Volumes** | Small 3D arrays ($16^3$ to $64^3$) in `uint8`, `uint16`, and `uint32` with known closed-form voxel values (e.g., $M[x, y, z] = x + y + z$ or single bright planes). | Verify pixel-exact projection accuracy (FR-5), global `vmax` normalization (FR-8), and axis ordering (FR-2). |
 | **Performance Benchmark Volume** | A $500 \times 500 \times 500$ `uint8` volume ($125\text{ MB}$) paired with a 100-row CSV of $500 \times 500$ slicing planes. | Measure pure projection throughput against the mandatory $\ge 30\text{ FPS}$ floor and $\ge 100\text{ FPS}$ target (NFR-1). |
-| **Invalid & Boundary Fixtures** | Volumes with dimensions $\ge 2^{10}$ or signed/float types; CSV rows with wrong column counts, $\delta > 10\%$ leg mismatch, non-coplanar trapezoids, or zero-area planes. | Verify fast-fail error messages and CLI exit codes `1`, `2`, and `3` (FR-1, FR-2, FR-4, NFR-3). |
+| **Invalid & Boundary Fixtures** | Volumes with dimensions $\ge 2^{10}$ or negative signed or float types; CSV rows with wrong column counts, $\delta > 10\%$ leg mismatch, non-coplanar trapezoids, or zero-area planes. | Verify fast-fail error messages and CLI exit codes `1`, `2`, and `3` (FR-1, FR-2, FR-4, NFR-3). |
 
 
 ---
@@ -331,7 +331,7 @@ This section defines the automated testing strategy, end-to-end CLI demo verific
 
 ### 8.1 Unit & Component Testing (`pytest`)
 Each module in §3 is tested in isolation using synthetic in-memory fixtures (§7.2):
-* **`test_volume_data.py`:** Verifies loading of valid `uint8`, `uint16`, and `uint32` NRRD volumes, `M[x, y, z]` axis ordering, `flags.writeable == False`, accurate `vmax` computation, and `VolumeError` on non-3D arrays, dimensions $\ge 2^{10}$, or signed/floating-point types (FR-2, FR-8).
+* **`test_volume_data.py`:** Verifies loading of valid `uint8`, `uint16`, and `uint32` NRRD volumes (including non-negative signed integer NRRDs promoted to unsigned), `M[x, y, z]` axis ordering, `flags.writeable == False`, accurate `vmax` computation, and `VolumeError` on non-3D arrays, dimensions $\ge 2^{10}$, or negative signed or floating-point types (FR-2, FR-8).
 * **`test_plane_geometry.py`:** Verifies four-corner mapping and rounded dimensions $(N, W)$ for `TrianglePlane` and `TrapezoidPlane`; silent acceptance when $\delta \le 1\%$; warning generation when $1\% < \delta \le 10\%$; and `PlaneError` when $\delta > 10\%$, when trapezoid points are non-coplanar ($>10\%$), or when $N < 1$ or $W < 1$ (FR-4, FR-5).
 * **`test_plane_parser.py`:** Verifies parsing of the 13-column CSV format, header and blank-line skipping, mixed triangle (`3`) and trapezoid (`4`) rows, and immediate `PlaneError` with the exact 1-based row number on malformed cells or point-count mismatches (FR-3, FR-4).
 * **`test_projection_engine.py`:** Verifies pixel-exact slice values on analytical volumes ($M[x, y, z] = x + y + z$), equivalence between vectorized projection and sequential scanline stepping on isosceles shapes, zero-masking of pixels outside a triangle's footprint, and zero-masking ($v = 0$) of negative or out-of-volume coordinates (FR-5, FR-6, §6).

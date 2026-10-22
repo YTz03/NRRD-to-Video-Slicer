@@ -5,9 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 import platform
 import statistics
+import sys
 import time
 import cv2
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from Ex0 import main
 from src.plane_parser import PlaneParser
@@ -51,12 +54,13 @@ def run_experiments() -> None:
     t_demo = time.perf_counter() - t0
     assert rc_demo == 0
 
-    # 3. Benchmark pure projection FPS vs end-to-end across all unsigned classroom datasets
+    # 3. Benchmark pure projection FPS vs end-to-end across all classroom datasets
     datasets = [
         ("data/croissant.nrrd", str(sweep_csv)),
         ("data/onion.nrrd", "data/sample_planes.csv"),
         ("data/biscuit_cake.nrrd", "data/sample_planes.csv"),
         ("data/swiss_roll.nrrd", "data/sample_planes.csv"),
+        ("data/MRHead_1.nrrd", "data/mrhead_planes.csv"),
     ]
 
     engine = ProjectionEngine()
@@ -87,12 +91,17 @@ def run_experiments() -> None:
         med_ms = 1000.0 / med_fps
 
         # End-to-end CLI run (including load + projection + MP4 encoding)
-        out_file = Path(f"/tmp/{Path(nrrd_file).stem}_out.mp4")
+        out_file = (
+            results_dir / "mrhead_output.mp4"
+            if Path(nrrd_file).name == "MRHead_1.nrrd"
+            else Path(f"/tmp/{Path(nrrd_file).stem}_out.mp4")
+        )
         t_e2e_start = time.perf_counter()
         rc = main([nrrd_file, csv_file, str(out_file)])
         e2e_s = time.perf_counter() - t_e2e_start
         assert rc == 0
-        out_file.unlink(missing_ok=True)
+        if out_file.parent == Path("/tmp"):
+            out_file.unlink(missing_ok=True)
 
         rows_md.append(
             f"| `{Path(nrrd_file).name}` | `{vol.dtype}` | `{vol.shape}` | `{vol.vmax}` | "

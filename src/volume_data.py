@@ -10,6 +10,11 @@ from src.exceptions import VolumeError
 
 MAX_DIMENSION_EXCLUSIVE = 1 << 10  # 2^10 = 1024
 ALLOWED_DTYPES = (np.dtype(np.uint8), np.dtype(np.uint16), np.dtype(np.uint32))
+SIGNED_TO_UNSIGNED = {
+    np.dtype(np.int8): np.dtype(np.uint8),
+    np.dtype(np.int16): np.dtype(np.uint16),
+    np.dtype(np.int32): np.dtype(np.uint32),
+}
 
 
 class VolumeData:
@@ -18,10 +23,10 @@ class VolumeData:
     def __init__(self, file_path: str | Path) -> None:
         self._path = Path(file_path)
         raw_matrix = self._load_nrrd(self._path)
-        self._validate_matrix(raw_matrix)
+        validated = self._validate_matrix(raw_matrix)
 
         # Ensure contiguous memory and enforce strict read-only immutability (SRS §4.1)
-        matrix = np.ascontiguousarray(raw_matrix)
+        matrix = np.ascontiguousarray(validated)
         matrix.flags.writeable = False
         self._matrix: np.ndarray = matrix
 
@@ -38,7 +43,7 @@ class VolumeData:
         return data
 
     @staticmethod
-    def _validate_matrix(matrix: np.ndarray) -> None:
+    def _validate_matrix(matrix: np.ndarray) -> np.ndarray:
         """Validate 3D dimensionality, size bounds (1 <= s < 2^10), and unsigned int dtype (FR-2)."""
         if not isinstance(matrix, np.ndarray) or matrix.ndim != 3:
             ndim = getattr(matrix, "ndim", "N/A")
@@ -54,10 +59,18 @@ class VolumeData:
                 f"Volume dimensions ({sx}, {sy}, {sz}) must satisfy 1 <= sx, sy, sz < {MAX_DIMENSION_EXCLUSIVE}."
             )
 
+        if matrix.dtype in SIGNED_TO_UNSIGNED:
+            if int(np.min(matrix)) < 0:
+                raise VolumeError(
+                    f"Unsupported voxel data type '{matrix.dtype}' with negative values; voxel values must be unsigned."
+                )
+            matrix = matrix.astype(SIGNED_TO_UNSIGNED[matrix.dtype], copy=False)
+
         if matrix.dtype not in ALLOWED_DTYPES:
             raise VolumeError(
                 f"Unsupported voxel data type '{matrix.dtype}'. Allowed types: uint8, uint16, uint32."
             )
+        return matrix
 
     @property
     def matrix(self) -> np.ndarray:

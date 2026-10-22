@@ -45,6 +45,20 @@ def test_load_valid_uint16_and_uint32_volumes(
     assert vol32.matrix[8, 8, 8] == 100000
 
 
+def test_promote_non_negative_signed_integer_volumes(tmp_path: Path) -> None:
+    """Verify non-negative int8/int16/int32 NRRDs are promoted to uint8/uint16/uint32 (FR-2)."""
+    arr_int16 = np.zeros((16, 16, 16), dtype=np.int16)
+    arr_int16[4, 5, 6] = 279
+    path = tmp_path / "non_negative_short.nrrd"
+    nrrd.write(str(path), arr_int16)
+
+    vol = VolumeData(path)
+    assert vol.dtype == np.dtype(np.uint16)
+    assert vol.vmax == 279
+    assert vol.matrix[4, 5, 6] == 279
+    assert vol.matrix.flags.writeable is False
+
+
 def test_reject_non_3d_volume(tmp_path: Path) -> None:
     """Reject 2D arrays with VolumeError (exit code 2, FR-2)."""
     arr_2d = np.zeros((32, 32), dtype=np.uint8)
@@ -71,8 +85,8 @@ def test_reject_dimension_exceeding_1023(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("bad_dtype", [np.int16, np.int32, np.float32, np.float64])
 def test_reject_signed_or_float_dtypes(tmp_path: Path, bad_dtype: type) -> None:
-    """Reject signed integer or floating-point volumes with VolumeError (FR-2)."""
-    arr = np.zeros((8, 8, 8), dtype=bad_dtype)
+    """Reject negative signed integer or floating-point volumes with VolumeError (FR-2)."""
+    arr = np.full((8, 8, 8), -1, dtype=bad_dtype)
     path = tmp_path / f"bad_{np.dtype(bad_dtype).name}.nrrd"
     nrrd.write(str(path), arr)
 
