@@ -10,3 +10,5 @@ htmlcov/
 .venv
 venv/
 *.mp4
+*.nrrd
+data/*.nrrd

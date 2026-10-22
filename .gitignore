@@ -17,6 +17,7 @@ htmlcov/
 
 # Media and Generated Outputs
 *.mp4
+!results/demo_output.mp4
 output/
 outputs/
 
