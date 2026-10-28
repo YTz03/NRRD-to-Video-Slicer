@@ -1,4 +1,4 @@
-"""Stateless vectorized 3D-to-2D projection engine (SRS §3.4, §6, FR-5, FR-6, NFR-1)."""
+"""Stateless vectorized 3D-to-2D projection engine (SRS FR-5, FR-6, NFR-1; SDD §2.4; EDD §2)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ class ProjectionEngine:
     """Computes 2D cross-sectional slices of a 3D volume using NumPy broadcasting."""
 
     def project(self, volume: np.ndarray, plane: Plane) -> np.ndarray:
-        """Project a 3D volume M onto the given Plane P to produce a 2D frame E (SRS §6.3).
+        """Project a 3D volume M onto the given Plane P to produce a 2D frame E (EDD §2.4).
 
         Args:
             volume: 3D numpy.ndarray M of shape (sx, sy, sz) indexed as M[x, y, z].

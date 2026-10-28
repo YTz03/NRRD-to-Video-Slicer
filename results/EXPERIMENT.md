@@ -5,7 +5,7 @@
 * **NumPy Version:** `2.4.6`
 * **OpenCV Version:** `5.0.0`
 
-## 2. Dataset & Performance Results (SRS §8.3, NFR-1)
+## 2. Dataset & Performance Results ([docs/SRS.md](../docs/SRS.md) NFR-1, [docs/STP.md](../docs/STP.md) TC-15)
 
 Pure projection throughput is measured as the median of 3 runs (after 1 warm-up pass), excluding disk I/O and video encoding, alongside full end-to-end CLI execution time (`python Ex0.py <file.nrrd> <file.csv> <file.mp4>`):
 
@@ -17,10 +17,10 @@ Pure projection throughput is measured as the median of 3 runs (after 1 warm-up 
 | `swiss_roll.nrrd` | `uint32` | `(256, 256, 130)` | `186330` | 4 | 0.16 s | **810.9 FPS** (1.23 ms) | 0.18 s |
 | `MRHead_1.nrrd` | `uint16` | `(256, 256, 130)` | `279` | 135 | 0.16 s | **1741.5 FPS** (0.57 ms) | 0.28 s |
 
-## 3. Output Video Verification (`results/demo_output.mp4`)
+## 3. Output Video Verification ([`results/demo_output.mp4`](demo_output.mp4))
 * **Command Executed:** `python Ex0.py data/croissant.nrrd data/croissant_sweep.csv results/demo_output.mp4`
 * **Encoded Frame Count:** `60` frames (matches 60 CSV plane rows: 30 trapezoids + 30 triangles)
-* **Uniform Canvas Resolution:** `514 × 500` pixels ($H_{\max} \times W_{\max}$, FR-7)
-* **Playback Frame Rate:** `30.0 FPS` (`mp4v` codec, FR-9)
+* **Uniform Canvas Resolution:** `514 × 500` pixels ($H_{\max} \times W_{\max}$, `FR-7`)
+* **Playback Frame Rate:** `30.0 FPS` (`mp4v` codec, `FR-9`)
 * **File Size:** `1,819,106` bytes
-* **Sample CSV Output (`results/sample_planes_output.mp4`):** 4 frames generated in `0.78 s` from `data/sample_planes.csv` (including out-of-volume negative coordinates and the 4.12% non-isosceles warning row).
+* **Classroom Sample Trajectory Verification (`data/sample_planes.csv`):** 4 frames verified in `0.78 s` on `data/croissant.nrrd` (including out-of-volume negative coordinates and the `Row 4: 4.12%` non-isosceles warning).

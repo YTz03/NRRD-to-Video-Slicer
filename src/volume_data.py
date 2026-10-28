@@ -1,4 +1,4 @@
-"""Data ingestion layer for loading and validating 3D NRRD volumes (SRS §3.1, §4.1, FR-2, FR-8)."""
+"""Data ingestion layer for loading and validating 3D NRRD volumes (SRS FR-2, FR-8; SDD §2.1; EDD §1.1)."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class VolumeData:
         raw_matrix = self._load_nrrd(self._path)
         validated = self._validate_matrix(raw_matrix)
 
-        # Ensure contiguous memory and enforce strict read-only immutability (SRS §4.1)
+        # Ensure contiguous memory and enforce strict read-only immutability (EDD §1.1)
         matrix = np.ascontiguousarray(validated)
         matrix.flags.writeable = False
         self._matrix: np.ndarray = matrix

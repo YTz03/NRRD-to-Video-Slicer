@@ -1,4 +1,4 @@
-"""Unit tests for Plane, TrianglePlane, and TrapezoidPlane geometry and validation (SRS §3.2, §4.3, FR-4, FR-5)."""
+"""Unit tests for Plane, TrianglePlane, and TrapezoidPlane geometry and validation (SRS FR-4, FR-5; SDD §2.2; EDD §1.2; STP TC-04, TC-05)."""
 
 from __future__ import annotations
 

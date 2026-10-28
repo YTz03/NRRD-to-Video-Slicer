@@ -1,4 +1,4 @@
-"""Unit tests for VolumeData (SRS §3.1, §4.1, §8.1, FR-2, FR-8)."""
+"""Unit tests for VolumeData (SRS FR-2, FR-8; SDD §2.1; EDD §1.1; STP TC-01..TC-03)."""
 
 from __future__ import annotations
 

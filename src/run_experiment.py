@@ -49,9 +49,7 @@ def run_experiments() -> None:
 
     # 2. Run CLI demo on 60-frame sweep + croissant.nrrd -> results/demo_output.mp4
     demo_mp4 = results_dir / "demo_output.mp4"
-    t0 = time.perf_counter()
     rc_demo = main(["data/croissant.nrrd", str(sweep_csv), str(demo_mp4)])
-    t_demo = time.perf_counter() - t0
     assert rc_demo == 0
 
     # 3. Benchmark pure projection FPS vs end-to-end across all classroom datasets
@@ -123,7 +121,7 @@ def run_experiments() -> None:
 * **NumPy Version:** `{np.__version__}`
 * **OpenCV Version:** `{cv2.__version__}`
 
-## 2. Dataset & Performance Results (SRS §8.3, NFR-1)
+## 2. Dataset & Performance Results ([docs/SRS.md](../docs/SRS.md) NFR-1, [docs/STP.md](../docs/STP.md) TC-15)
 
 Pure projection throughput is measured as the median of 3 runs (after 1 warm-up pass), excluding disk I/O and video encoding, alongside full end-to-end CLI execution time (`python Ex0.py <file.nrrd> <file.csv> <file.mp4>`):
 
@@ -131,13 +129,13 @@ Pure projection throughput is measured as the median of 3 runs (after 1 warm-up 
 |---|---|---|---|---|---|---|---|
 {chr(10).join(rows_md)}
 
-## 3. Output Video Verification (`results/demo_output.mp4`)
+## 3. Output Video Verification ([`results/demo_output.mp4`](demo_output.mp4))
 * **Command Executed:** `python Ex0.py data/croissant.nrrd data/croissant_sweep.csv results/demo_output.mp4`
 * **Encoded Frame Count:** `{frame_count}` frames (matches 60 CSV plane rows: 30 trapezoids + 30 triangles)
-* **Uniform Canvas Resolution:** `{height} × {width}` pixels ($H_{{\\max}} \\times W_{{\\max}}$, FR-7)
-* **Playback Frame Rate:** `{fps:.1f} FPS` (`mp4v` codec, FR-9)
+* **Uniform Canvas Resolution:** `{height} × {width}` pixels ($H_{{\\max}} \\times W_{{\\max}}$, `FR-7`)
+* **Playback Frame Rate:** `{fps:.1f} FPS` (`mp4v` codec, `FR-9`)
 * **File Size:** `{demo_mp4.stat().st_size:,}` bytes
-* **Sample CSV Output (`results/sample_planes_output.mp4`):** 4 frames generated in `{t_sample:.2f} s` from `data/sample_planes.csv` (including out-of-volume negative coordinates and the 4.12% non-isosceles warning row).
+* **Classroom Sample Trajectory Verification (`data/sample_planes.csv`):** 4 frames verified in `{t_sample:.2f} s` on `data/croissant.nrrd` (including out-of-volume negative coordinates and the `Row 4: 4.12%` non-isosceles warning).
 """
     (results_dir / "EXPERIMENT.md").write_text(report, encoding="utf-8")
     print(report)

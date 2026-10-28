@@ -1,4 +1,4 @@
-"""Execution orchestrator wiring VolumeData, PlaneParser, ProjectionEngine, and VideoExporter (SRS §3.6, §5)."""
+"""Execution orchestrator wiring VolumeData, PlaneParser, ProjectionEngine, and VideoExporter (SDD §2.6, EDD §4.1)."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class AppController:
     def run(self, args: Sequence[str]) -> int:
         """Execute the end-to-end projection pipeline and return the CLI exit code (0, 1, 2, or 3)."""
         try:
-            # Phase 1: Initialization, Ingestion & Up-Front Validation (SRS §5.1)
+            # Phase 1: Initialization, Ingestion & Up-Front Validation (EDD §4.1)
             nrrd_path, csv_path, mp4_path = self.validate_cli_args(args)
             volume = VolumeData(nrrd_path)
             parser = PlaneParser()
@@ -69,7 +69,7 @@ class AppController:
             canvas_height = max(plane.height for plane in planes)
             canvas_width = max(plane.width for plane in planes)
 
-            # Phase 2 & 3: Transformation Loop & Finalization (SRS §5.2, §5.3)
+            # Phase 2 & 3: Transformation Loop & Finalization (EDD §4.1)
             engine = ProjectionEngine()
             with VideoExporter(
                 output_path=mp4_path,

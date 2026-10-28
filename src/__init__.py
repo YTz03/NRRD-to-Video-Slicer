@@ -1,4 +1,4 @@
-"""High-Performance 3D Volumetric Plane Projection package (SRS §3 & §4)."""
+"""High-Performance 3D Volumetric Plane Projection package (SDD §2 & §3, EDD §1)."""
 
 from src.app_controller import AppController
 from src.exceptions import EncodingError, InputError, PlaneError, SlicerError, VolumeError

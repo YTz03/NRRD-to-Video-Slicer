@@ -1,4 +1,4 @@
-"""Domain exception hierarchy for the 3D Volumetric Plane Projection system (SRS §4.4, NFR-3)."""
+"""Domain exception hierarchy for the 3D Volumetric Plane Projection system (SRS NFR-3; SDD §3; EDD §1.4)."""
 
 from __future__ import annotations
 

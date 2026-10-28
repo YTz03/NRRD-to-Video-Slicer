@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for synthetic volumes and 13-column CSV trajectories (SRS §7.2, §8.1)."""
+"""Shared pytest fixtures for synthetic volumes and 13-column CSV trajectories (STP §1.4B)."""
 
 from __future__ import annotations
 

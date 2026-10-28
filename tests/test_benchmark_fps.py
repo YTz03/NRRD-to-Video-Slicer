@@ -1,4 +1,4 @@
-"""Performance benchmark test for 500^3 uint8 volume projection throughput (SRS §8.3, NFR-1)."""
+"""Performance benchmark test for 500^3 uint8 volume projection throughput (SRS NFR-1; EDD §6; STP TC-15)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from src.projection_engine import ProjectionEngine
 def test_500_cubed_projection_fps_benchmark() -> None:
     """Measure pure projection FPS on a 500^3 uint8 volume with 500x500 planes (NFR-1).
 
-    Protocol (SRS §2.2 NFR-1 & §8.3):
+    Protocol (SRS §3.3 NFR-1 & STP TC-15):
     - 500 x 500 x 500 uint8 volume
     - 500 x 500 slicing planes
     - 1 warm-up pass, followed by >= 3 timed runs

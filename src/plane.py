@@ -1,4 +1,4 @@
-"""Geometry layer defining Plane, TrianglePlane, and TrapezoidPlane value objects (SRS §3.2, §4.3, §6.1)."""
+"""Geometry layer defining Plane, TrianglePlane, and TrapezoidPlane value objects (SDD §2.2; EDD §1.2, §2.2)."""
 
 from __future__ import annotations
 
@@ -62,13 +62,13 @@ class Plane(ABC):
 
     @property
     def d_ab(self) -> float:
-        """Longer leg length D_ab = max(L1, L2) (FR-5, §6.1)."""
+        """Longer leg length D_ab = max(L1, L2) (SRS FR-5, EDD §2.2)."""
         return max(self.left_leg_length, self.right_leg_length)
 
     @property
     @abstractmethod
     def d_bc(self) -> float:
-        """Base width D_bc (FR-5, §6.1)."""
+        """Base width D_bc (SRS FR-5, EDD §2.2)."""
 
     @property
     def height(self) -> int:
@@ -120,7 +120,7 @@ class Plane(ABC):
 
 @dataclass(frozen=True)
 class TrianglePlane(Plane):
-    """3-point isosceles triangle plane (a, b, c) with apex a and base b -> c (SRS §3.2, §6.1)."""
+    """3-point isosceles triangle plane (a, b, c) with apex a and base b -> c (SDD §2.2, EDD §2.2)."""
 
     a: np.ndarray
     b: np.ndarray
@@ -170,7 +170,7 @@ class TrianglePlane(Plane):
 
 @dataclass(frozen=True)
 class TrapezoidPlane(Plane):
-    """4-point isosceles trapezoid plane (a', b, a'', c) with legs a' -> b and a'' -> c (SRS §3.2, §6.1)."""
+    """4-point isosceles trapezoid plane (a', b, a'', c) with legs a' -> b and a'' -> c (SDD §2.2, EDD §2.2)."""
 
     a_prime: np.ndarray
     b: np.ndarray

@@ -1,4 +1,4 @@
-"""Unit tests for VideoExporter normalization, centered padding, and MP4 encoding (SRS §3.5, FR-7..FR-9)."""
+"""Unit tests for VideoExporter normalization, centered padding, and MP4 encoding (SRS FR-7..FR-9; SDD §2.5; STP TC-10, TC-11)."""
 
 from __future__ import annotations
 
@@ -51,6 +51,7 @@ def test_video_exporter_writes_readable_mp4_stream(tmp_path: Path) -> None:
     f2 = np.full((40, 50), 1000, dtype=np.uint16)
 
     with VideoExporter(mp4_path, canvas_height=40, canvas_width=50, vmax=1000) as exporter:
+        assert exporter.canvas_shape == (40, 50)
         exporter.write_frame(f1)
         exporter.write_frame(f2)
         assert exporter.frames_written == 2

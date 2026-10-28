@@ -1,4 +1,4 @@
-"""Presentation layer for normalizing, padding, and encoding 2D slices into an MP4 video (SRS §3.5, FR-7..FR-9)."""
+"""Presentation layer for normalizing, padding, and encoding 2D slices into an MP4 video (SRS FR-7..FR-9; SDD §2.5; EDD §1.3, §4.2)."""
 
 from __future__ import annotations
 

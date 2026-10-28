@@ -1,4 +1,4 @@
-"""Unit tests for ProjectionEngine (SRS §3.4, §6, §8.1, FR-5, FR-6)."""
+"""Unit tests for ProjectionEngine (SRS FR-5, FR-6; SDD §2.4; EDD §2; STP TC-08, TC-09)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from src.projection_engine import ProjectionEngine
 
 
 def _sequential_reference_project(volume: np.ndarray, plane: Plane) -> np.ndarray:
-    """Sequential scanline reference implementation from SRS §6.2 for equivalence verification."""
+    """Sequential scanline reference implementation from EDD §2.3 for equivalence verification."""
     n_rows = plane.height
     n_cols = plane.width
     t_l = plane.top_left
@@ -40,7 +40,7 @@ def _sequential_reference_project(volume: np.ndarray, plane: Plane) -> np.ndarra
 def test_vectorized_matches_sequential_reference_triangle(
     analytical_volume_uint8: np.ndarray,
 ) -> None:
-    """Verify vectorized triangle projection matches sequential scanline stepping pixel-for-pixel (§6.2, §6.3)."""
+    """Verify vectorized triangle projection matches sequential scanline stepping pixel-for-pixel (EDD §2.3, §2.4)."""
     tri = TrianglePlane(row_index=1, a=(16, 2, 16), b=(4, 26, 4), c=(28, 26, 28))
     engine = ProjectionEngine()
 

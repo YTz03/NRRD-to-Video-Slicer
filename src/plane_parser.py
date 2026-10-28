@@ -1,4 +1,4 @@
-"""CSV plane list reader and factory (SRS §3.3, FR-3, FR-4)."""
+"""CSV plane list reader and factory (SRS FR-3, FR-4; SDD §2.3; EDD §3)."""
 
 from __future__ import annotations
 

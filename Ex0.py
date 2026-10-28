@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI entry point for the 3D Volumetric Plane Projection system (SRS §1.2, §3.6, FR-1).
+"""CLI entry point for the 3D Volumetric Plane Projection system (SRS §1.2, FR-1; SDD §2.6).
 
 Usage:
     python Ex0.py <file.nrrd> <file.csv> <file.mp4>

@@ -1,4 +1,4 @@
-"""End-to-end CLI demo verification tests for Ex0.py (SRS §8.2, FR-1..FR-9, NFR-2, NFR-3)."""
+"""End-to-end CLI demo verification tests for Ex0.py (SRS FR-1..FR-9, NFR-2, NFR-3; STP TC-12..TC-14)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ def test_cli_valid_demo_run_end_to_end(
     sample_csv_path: Path,
     tmp_path: Path,
 ) -> None:
-    """Run `python Ex0.py <file.nrrd> <file.csv> <file.mp4>` and verify MP4 output (SRS §8.2)."""
+    """Run `python Ex0.py <file.nrrd> <file.csv> <file.mp4>` and verify MP4 output (STP TC-12)."""
     out_mp4 = tmp_path / "demo.mp4"
     result = subprocess.run(
         [sys.executable, "Ex0.py", str(nrrd_uint8_path), str(sample_csv_path), str(out_mp4)],

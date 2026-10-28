@@ -1,4 +1,4 @@
-"""Unit tests for PlaneParser (SRS §3.3, §8.1, FR-3, FR-4)."""
+"""Unit tests for PlaneParser (SRS FR-3, FR-4; SDD §2.3; STP TC-06, TC-07)."""
 
 from __future__ import annotations
 
