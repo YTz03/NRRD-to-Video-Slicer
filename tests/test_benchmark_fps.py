@@ -13,6 +13,10 @@ from src.projection_engine import ProjectionEngine
 def test_500_cubed_projection_fps_benchmark() -> None:
     """Measure pure projection FPS on a 500^3 uint8 volume with 500x500 planes (NFR-1).
 
+    - Sent to: `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+    - Input: `500x500x500` `uint8` cube and a `500x500` `TrianglePlane` (1 warm-up + 3 runs of 30 slices).
+    - Expected Output: `median_fps >= 30.0` (`<= 33.3 ms` per frame).
+
     Protocol (SRS §3.3 NFR-1 & STP TC-15):
     - 500 x 500 x 500 uint8 volume
     - 500 x 500 slicing planes

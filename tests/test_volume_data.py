@@ -15,7 +15,12 @@ def test_load_valid_uint8_volume(
     nrrd_uint8_path: Path,
     analytical_volume_uint8: np.ndarray,
 ) -> None:
-    """Verify loading a valid uint8 NRRD preserves M[x, y, z] axis order and read-only flag."""
+    """Verify loading a valid uint8 NRRD preserves M[x, y, z] axis order and read-only flag.
+
+    - Sent to: `VolumeData(file_path)` in `src/volume_data.py`
+    - Input: Valid `32x32x32` 8-bit (`uint8`) `.nrrd` file.
+    - Expected Output: Exact `32x32x32` `(x, y, z)` array, accurate `vmax`, and read-only lock (`ValueError` if modified).
+    """
     vol = VolumeData(nrrd_uint8_path)
     assert vol.shape == (32, 32, 32)
     assert vol.dtype == np.dtype(np.uint8)
@@ -31,7 +36,12 @@ def test_load_valid_uint16_and_uint32_volumes(
     nrrd_uint16_path: Path,
     nrrd_uint32_path: Path,
 ) -> None:
-    """Verify uint16 and uint32 NRRD files load properly and precompute vmax (FR-2, FR-8)."""
+    """Verify uint16 and uint32 NRRD files load properly and precompute vmax (FR-2, FR-8).
+
+    - Sent to: `VolumeData(file_path)` in `src/volume_data.py`
+    - Input: Valid `uint16` (max `4000`) and `uint32` (max `100000`) `.nrrd` files.
+    - Expected Output: Exact shapes/dtypes loaded with `vmax == 4000` and `vmax == 100000`.
+    """
     vol16 = VolumeData(nrrd_uint16_path)
     assert vol16.shape == (16, 20, 24)
     assert vol16.dtype == np.dtype(np.uint16)
@@ -46,7 +56,12 @@ def test_load_valid_uint16_and_uint32_volumes(
 
 
 def test_promote_non_negative_signed_integer_volumes(tmp_path: Path) -> None:
-    """Verify non-negative int8/int16/int32 NRRDs are promoted to uint8/uint16/uint32 (FR-2)."""
+    """Verify non-negative int8/int16/int32 NRRDs are promoted to uint8/uint16/uint32 (FR-2).
+
+    - Sent to: `VolumeData._validate_matrix()` via `VolumeData(path)` in `src/volume_data.py`
+    - Input: Signed `int16` `.nrrd` file whose values are all `>= 0` (`0..279`).
+    - Expected Output: Promoted to unsigned `uint16` with `vmax == 279` and read-only lock.
+    """
     arr_int16 = np.zeros((16, 16, 16), dtype=np.int16)
     arr_int16[4, 5, 6] = 279
     path = tmp_path / "non_negative_short.nrrd"
@@ -60,7 +75,12 @@ def test_promote_non_negative_signed_integer_volumes(tmp_path: Path) -> None:
 
 
 def test_reject_non_3d_volume(tmp_path: Path) -> None:
-    """Reject 2D arrays with VolumeError (exit code 2, FR-2)."""
+    """Reject 2D arrays with VolumeError (exit code 2, FR-2).
+
+    - Sent to: `VolumeData._validate_matrix()` via `VolumeData(path)` in `src/volume_data.py`
+    - Input: A 2D (`32x32`) `.nrrd` file instead of a 3D cube.
+    - Expected Output: Raises `VolumeError` (`exit_code == 2`).
+    """
     arr_2d = np.zeros((32, 32), dtype=np.uint8)
     path = tmp_path / "invalid_2d.nrrd"
     nrrd.write(str(path), arr_2d)
@@ -72,7 +92,12 @@ def test_reject_non_3d_volume(tmp_path: Path) -> None:
 
 
 def test_reject_dimension_exceeding_1023(tmp_path: Path) -> None:
-    """Reject volumes where any axis is >= 2^10 (1024) with VolumeError (FR-2)."""
+    """Reject volumes where any axis is >= 2^10 (1024) with VolumeError (FR-2).
+
+    - Sent to: `VolumeData._validate_matrix()` via `VolumeData(path)` in `src/volume_data.py`
+    - Input: Oversized `1024x2x2` `.nrrd` file.
+    - Expected Output: Raises `VolumeError` (`exit_code == 2`).
+    """
     arr_large = np.zeros((1024, 2, 2), dtype=np.uint8)
     path = tmp_path / "too_large.nrrd"
     nrrd.write(str(path), arr_large)
@@ -85,7 +110,12 @@ def test_reject_dimension_exceeding_1023(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("bad_dtype", [np.int16, np.int32, np.float32, np.float64])
 def test_reject_signed_or_float_dtypes(tmp_path: Path, bad_dtype: type) -> None:
-    """Reject negative signed integer or floating-point volumes with VolumeError (FR-2)."""
+    """Reject negative signed integer or floating-point volumes with VolumeError (FR-2).
+
+    - Sent to: `VolumeData._validate_matrix()` via `VolumeData(path)` in `src/volume_data.py`
+    - Input: `8x8x8` `.nrrd` files filled with `-1` using `int16`, `int32`, `float32`, and `float64`.
+    - Expected Output: Raises `VolumeError` (`exit_code == 2`) for every unsupported type.
+    """
     arr = np.full((8, 8, 8), -1, dtype=bad_dtype)
     path = tmp_path / f"bad_{np.dtype(bad_dtype).name}.nrrd"
     nrrd.write(str(path), arr)
@@ -97,7 +127,12 @@ def test_reject_signed_or_float_dtypes(tmp_path: Path, bad_dtype: type) -> None:
 
 
 def test_reject_corrupted_nrrd_file(tmp_path: Path) -> None:
-    """Reject unreadable/corrupted NRRD files with VolumeError (exit code 2)."""
+    """Reject unreadable/corrupted NRRD files with VolumeError (exit code 2).
+
+    - Sent to: `VolumeData._load_nrrd()` via `VolumeData(path)` in `src/volume_data.py`
+    - Input: Plain text file (`"NOT A VALID NRRD HEADER"`) saved as `.nrrd`.
+    - Expected Output: Raises `VolumeError` (`exit_code == 2`).
+    """
     path = tmp_path / "corrupt.nrrd"
     path.write_text("NOT A VALID NRRD HEADER", encoding="utf-8")
 

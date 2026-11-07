@@ -40,7 +40,12 @@ def _sequential_reference_project(volume: np.ndarray, plane: Plane) -> np.ndarra
 def test_vectorized_matches_sequential_reference_triangle(
     analytical_volume_uint8: np.ndarray,
 ) -> None:
-    """Verify vectorized triangle projection matches sequential scanline stepping pixel-for-pixel (EDD §2.3, §2.4)."""
+    """Verify vectorized triangle projection matches sequential scanline stepping pixel-for-pixel (EDD §2.3, §2.4).
+
+    - Sent to: `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+    - Input: `32x32x32` `uint8` analytical cube and an angled `TrianglePlane`.
+    - Expected Output: 2D `uint8` slice matching the simple `for`-loop reference pixel-for-pixel, with `0` in top corners outside the triangle.
+    """
     tri = TrianglePlane(row_index=1, a=(16, 2, 16), b=(4, 26, 4), c=(28, 26, 28))
     engine = ProjectionEngine()
 
@@ -61,7 +66,12 @@ def test_vectorized_matches_sequential_reference_triangle(
 def test_vectorized_matches_sequential_reference_trapezoid(
     analytical_volume_uint8: np.ndarray,
 ) -> None:
-    """Verify vectorized trapezoid projection matches sequential scanline stepping pixel-for-pixel."""
+    """Verify vectorized trapezoid projection matches sequential scanline stepping pixel-for-pixel.
+
+    - Sent to: `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+    - Input: `32x32x32` `uint8` analytical cube and an angled `TrapezoidPlane`.
+    - Expected Output: 2D `uint8` slice matching the simple `for`-loop reference pixel-for-pixel.
+    """
     trap = TrapezoidPlane(
         row_index=2,
         a_prime=(16, 4, 4),
@@ -79,7 +89,12 @@ def test_vectorized_matches_sequential_reference_trapezoid(
 
 
 def test_out_of_volume_coordinates_masked_to_zero() -> None:
-    """Sampled coordinates outside [0, sx-1] x [0, sy-1] x [0, sz-1] are assigned v = 0 (FR-6)."""
+    """Sampled coordinates outside [0, sx-1] x [0, sy-1] x [0, sz-1] are assigned v = 0 (FR-6).
+
+    - Sent to: `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+    - Input: `16x16x16` cube filled with `200`, sliced by one negative-space triangle and one half-inside triangle.
+    - Expected Output: Outside slice is all `0`s (no crash); half-inside slice has `200` inside and `0` outside.
+    """
     vol = np.full((16, 16, 16), 200, dtype=np.uint8)
     engine = ProjectionEngine()
 

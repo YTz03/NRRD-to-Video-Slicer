@@ -16,9 +16,9 @@ All notable changes to this project are documented in this file.
 * **[docs/SRS.md](docs/SRS.md):**
   * Rewrote the introduction (`§1.1`–`§1.2`), definitions table (`§1.3`), and design constraints (`§2.4`) in clear, intuitive English.
   * Refactored `FR-1`–`FR-9`, `NFR-1`–`NFR-5` (`§3`), and use cases `UC-01`–`UC-04` (`§4.2`) into concise, scannable bullet points while preserving every requirement ID, tolerance threshold, exit code, diagram, and traceability entry.
-* **[docs/STP.md](docs/STP.md):**
+* **[docs/STP.md](docs/STP.md) & [`tests/`](tests/):**
   * Added a plain-English **Big Picture** summary of the 3-layer testing strategy (`§1`), explained the shared test tricks and `tests/conftest.py` fixtures (`§1.3`–`§1.4`), and simplified the risk register (`R-01`–`R-05` in `§1.6`).
-  * Added a file-by-file STD walkthrough (`§2.1`: **Feeds in / Does / Passes if**) alongside a simplified master `TC-01`–`TC-15` table (`§2.2`).
+  * Added simple **Sent to / Input / Expected Output** explanations to all 31 test functions across both [`docs/STP.md`](docs/STP.md) (`§2.1`) and every test file docstring in [`tests/`](tests/) (`test_volume_data.py`, `test_plane_geometry.py`, `test_plane_parser.py`, `test_projection_engine.py`, `test_video_exporter.py`, `test_cli_demo.py`, and `test_benchmark_fps.py`).
 * **[README.md](README.md):**
   * Verified all SRS links point to [`docs/SRS.md`](docs/SRS.md) and added `CHANGELOG.md` to the repository structure tree.
 

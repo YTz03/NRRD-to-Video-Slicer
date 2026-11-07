@@ -67,67 +67,171 @@ Generated automatically in temporary folders (`tmp_path`) so unit tests run anyw
 
 ## 2. Software Test Descriptions (STD)
 
-Below is a plain-English walkthrough of **what goes into each test, what it does, and when it passes**, followed by the complete traceability table (`TC-01`–`TC-15`).
+Every test function in `tests/` is listed below in simple terms: **what part of the code it checks**, **what goes in**, and **what is expected to come out**.
 
-### 2.1 File-by-File Test Walkthrough
+### 2.1 Test-by-Test Reference (`Sent to` / `Input` / `Expected Output`)
 
-#### A. 3D Scan Loading (`tests/test_volume_data.py` — `TC-01` to `TC-03`)
-* **`TC-01` (`test_load_valid_uint8_volume`, `test_load_valid_uint16_and_uint32_volumes`):**
-  * **Feeds in:** Valid `uint8`, `uint16` (`vmax=4000`), and `uint32` (`vmax=100000`) `.nrrd` files.
-  * **Does:** Loads each file with `VolumeData` and tries to overwrite `vol.matrix[0, 0, 0] = 99`.
-  * **Passes if:** Shape, dtype, voxel positions, and `vmax` match 100%, and modifying `vol.matrix` raises `ValueError` (proving it is read-only).
-* **`TC-02` (`test_promote_non_negative_signed_integer_volumes`):**
-  * **Feeds in:** A signed `int16` `.nrrd` scan with values `0..279`.
-  * **Passes if:** `VolumeData` promotes it cleanly to `uint16` with `vmax == 279`.
-* **`TC-03` (`test_reject_non_3d_volume`, `test_reject_dimension_exceeding_1023`, `test_reject_signed_or_float_dtypes`, `test_reject_corrupted_nrrd_file`):**
-  * **Feeds in:** A 2D image, a `1024×2×2` scan, negative `int16`/`int32` scans, `float32`/`float64` scans, and a fake text file.
-  * **Passes if:** Every bad file raises `VolumeError` with `exit_code == 2`.
+#### A. `tests/test_volume_data.py` — Checks `VolumeData` (`src/volume_data.py`)
 
-#### B. Shape Geometry & Tolerances (`tests/test_plane_geometry.py` — `TC-04` to `TC-05`)
-* **`TC-04` (`test_triangle_plane_four_corner_interface_and_dimensions`, `test_trapezoid_plane_four_corner_interface_and_longer_base`):**
-  * **Feeds in:** Known 3D coordinates for a triangle and a trapezoid (top base `300`, bottom base `400`).
-  * **Passes if:** Triangle maps `top_left == top_right == a` with rounded pixel size `(447, 400)`; trapezoid picks the wider base (`400`) and rounds to `(502, 400)` with zero warnings.
-* **`TC-05` (`test_leg_difference_*`, `test_trapezoid_coplanarity_warning_and_abort`, `test_degenerate_coinciding_points_raise_plane_error`):**
-  * **Feeds in:** Shapes with `0.79%`, `4.12%`, and `16.67%` leg differences; trapezoids bent out of plane by `5%` and `25%`; and coinciding/collinear points.
-  * **Passes if:** `<= 1%` gives no warnings; `1%–10%` returns a warning naming the row number; `> 10%` or zero-area points raise `PlaneError` (`exit_code == 2`) without dividing by zero.
+* **`test_load_valid_uint8_volume`** (`TC-01`)
+  * **Sent to:** `VolumeData(file_path)` in `src/volume_data.py`
+  * **Input:** Valid `32×32×32` 8-bit (`uint8`) `.nrrd` file.
+  * **Expected Output:** Exact `32×32×32` `(x, y, z)` array, accurate `vmax`, and read-only lock (changing a pixel raises `ValueError`).
+* **`test_load_valid_uint16_and_uint32_volumes`** (`TC-01`)
+  * **Sent to:** `VolumeData(file_path)` in `src/volume_data.py`
+  * **Input:** Valid `uint16` (max `4000`) and `uint32` (max `100000`) `.nrrd` files.
+  * **Expected Output:** Exact shapes and types loaded with `vmax == 4000` and `vmax == 100000`.
+* **`test_promote_non_negative_signed_integer_volumes`** (`TC-02`)
+  * **Sent to:** `VolumeData._validate_matrix()` in `src/volume_data.py`
+  * **Input:** Signed `int16` `.nrrd` file whose values are all `>= 0` (`0..279`).
+  * **Expected Output:** Promoted to unsigned `uint16` with `vmax == 279` and read-only lock.
+* **`test_reject_non_3d_volume`** (`TC-03`)
+  * **Sent to:** `VolumeData._validate_matrix()` in `src/volume_data.py`
+  * **Input:** A 2D (`32×32`) `.nrrd` file instead of a 3D cube.
+  * **Expected Output:** Raises `VolumeError` (`exit_code == 2`).
+* **`test_reject_dimension_exceeding_1023`** (`TC-03`)
+  * **Sent to:** `VolumeData._validate_matrix()` in `src/volume_data.py`
+  * **Input:** Oversized `1024×2×2` `.nrrd` file.
+  * **Expected Output:** Raises `VolumeError` (`exit_code == 2`).
+* **`test_reject_signed_or_float_dtypes`** (`TC-03`)
+  * **Sent to:** `VolumeData._validate_matrix()` in `src/volume_data.py`
+  * **Input:** `8×8×8` `.nrrd` files filled with `-1` using `int16`, `int32`, `float32`, and `float64`.
+  * **Expected Output:** Raises `VolumeError` (`exit_code == 2`) for every unsupported type.
+* **`test_reject_corrupted_nrrd_file`** (`TC-03`)
+  * **Sent to:** `VolumeData._load_nrrd()` in `src/volume_data.py`
+  * **Input:** Plain text file (`"NOT A VALID NRRD HEADER"`) saved as `.nrrd`.
+  * **Expected Output:** Raises `VolumeError` (`exit_code == 2`).
 
-#### C. CSV Trajectory Reader (`tests/test_plane_parser.py` — `TC-06` to `TC-07`)
-* **`TC-06` (`test_parse_professor_sample_csv`, `test_skip_blank_lines_and_header`):**
-  * **Feeds in:** `data/sample_planes.csv` and a CSV containing blank lines and a header row.
-  * **Passes if:** Builds the exact ordered list of `TrianglePlane` and `TrapezoidPlane` objects, skips blank/header lines while keeping accurate 1-based line numbers, and catches the `Row 4` warning.
-* **`TC-07` (`test_reject_wrong_column_count`, `test_reject_point_count_mismatch_*`, `test_reject_missing_fourth_point_*`, `test_reject_non_numeric_coordinate`, `test_reject_empty_csv_file`):**
-  * **Feeds in:** 10-column CSV, `3`-point row with 4th-point numbers, `4`-point row missing 4th-point numbers, `"abc"` coordinate text, and header-only CSV.
-  * **Passes if:** Raises `PlaneError` (`exit_code == 2`) with the exact offending `row_index`.
+---
 
-#### D. 3D-to-2D Slicing Math (`tests/test_projection_engine.py` — `TC-08` to `TC-09`)
-* **`TC-08` (`test_vectorized_matches_sequential_reference_triangle`, `test_vectorized_matches_sequential_reference_trapezoid`):**
-  * **Feeds in:** The `32×32×32` `analytical_volume_uint8` cube and angled `TrianglePlane` / `TrapezoidPlane` objects.
-  * **Does:** Runs both the fast vectorized `ProjectionEngine.project()` and the simple nested-loop `_sequential_reference_project()`.
-  * **Passes if:** Both output 2D images match pixel-for-pixel, and corners outside the triangle's edges are `0`.
-* **`TC-09` (`test_out_of_volume_coordinates_masked_to_zero`):**
-  * **Feeds in:** A `16×16×16` cube filled with `200`, sliced once completely in negative space `(-20..-40)` and once halfway across the boundary.
-  * **Passes if:** Exterior slice is all `0`s (no crash), and partial slice has `200` inside the cube and `0` outside.
+#### B. `tests/test_plane_geometry.py` — Checks `Plane`, `TrianglePlane`, `TrapezoidPlane` (`src/plane.py`)
 
-#### E. Brightness Scaling, Padding & MP4 Writer (`tests/test_video_exporter.py` — `TC-10` to `TC-11`)
-* **`TC-10` (`test_normalize_frame_uint8_unchanged`, `test_normalize_frame_uint16_and_uint32_global_vmax`, `test_pad_frame_centers_with_black_border`):**
-  * **Feeds in:** `uint8`, `uint16` (`[0, 500, 1000]`, `vmax=1000`), `uint32`, and all-zero slices; plus a `2×4` white slice padded onto a `6×8` canvas.
-  * **Passes if:** `uint8` is unchanged, `16/32-bit` scales to `[0, 128, 255]`, `vmax=0` stays `0`, and the `2×4` slice lands dead-center at rows `2..3`, cols `2..5` surrounded by black `0`s.
-* **`TC-11` (`test_video_exporter_writes_readable_mp4_stream`):**
-  * **Feeds in:** Two `uint16` frames of different sizes (`20×30` and `40×50`).
-  * **Does:** Writes `out.mp4` via `with VideoExporter(...)` and re-opens it with `cv2.VideoCapture`.
-  * **Passes if:** File opens cleanly with `2` frames, size `40×50`, and `30.0 FPS`.
+* **`test_triangle_plane_four_corner_interface_and_dimensions`** (`TC-04`)
+  * **Sent to:** `TrianglePlane` & `Plane.validate()` in `src/plane.py`
+  * **Input:** 3 points forming an isosceles triangle (`a=(200,200,0)`, `b=(0,200,400)`, `c=(400,200,400)`).
+  * **Expected Output:** `top_left == top_right == a`, `height == 447`, `width == 400`, and `warnings == []`.
+* **`test_trapezoid_plane_four_corner_interface_and_longer_base`** (`TC-04`)
+  * **Sent to:** `TrapezoidPlane` & `Plane.validate()` in `src/plane.py`
+  * **Input:** 4 points forming a flat trapezoid (top width `300`, bottom width `400`, legs `502.49`).
+  * **Expected Output:** Maps all 4 corners, picks wider base (`width == 400`), `height == 502`, and `warnings == []`.
+* **`test_leg_difference_within_1_percent_accepted_silently`** (`TC-05`)
+  * **Sent to:** `Plane.validate()` in `src/plane.py`
+  * **Input:** Triangle with legs `100.0` and `100.8` (`0.79%` difference, `<= 1%`).
+  * **Expected Output:** `warnings == []` (accepted silently).
+* **`test_leg_difference_between_1_and_10_percent_emits_warning`** (`TC-05`)
+  * **Sent to:** `Plane.validate()` in `src/plane.py`
+  * **Input:** Triangle on `row_index=4` with a `4.12%` leg difference (`1% < diff <= 10%`).
+  * **Expected Output:** Returns 1 warning string naming `"Row 4"` and sets `height` from the longer leg.
+* **`test_leg_difference_above_10_percent_raises_plane_error`** (`TC-05`)
+  * **Sent to:** `Plane.validate()` in `src/plane.py`
+  * **Input:** Triangle on `row_index=7` with legs `100` and `120` (`16.67%` difference, `> 10%`).
+  * **Expected Output:** Raises `PlaneError` (`exit_code == 2`, `row_index == 7`).
+* **`test_trapezoid_coplanarity_warning_and_abort`** (`TC-05`)
+  * **Sent to:** `TrapezoidPlane._validate_shape_specific()` in `src/plane.py`
+  * **Input:** Two trapezoids with the 4th corner bent out of plane by `5%` (`row_index=3`) and `~25%` (`row_index=8`).
+  * **Expected Output:** `5%` returns a coplanarity warning; `~25%` raises `PlaneError` (`exit_code == 2`, `row_index == 8`).
+* **`test_degenerate_coinciding_points_raise_plane_error`** (`TC-05`)
+  * **Sent to:** `Plane.validate()` & `TrianglePlane._validate_shape_specific()` in `src/plane.py`
+  * **Input:** 3 identical points `(10,10,10)` and 3 points lying on the same straight line.
+  * **Expected Output:** Both raise `PlaneError` (`exit_code == 2`) without dividing by zero.
 
-#### F. End-to-End CLI & Speed Benchmark (`tests/test_cli_demo.py`, `tests/test_benchmark_fps.py` — `TC-12` to `TC-15`)
-* **`TC-12` (`test_cli_valid_demo_run_end_to_end`):** Runs `python Ex0.py <nrrd> <csv> <mp4>` in a subprocess → checks exit code `0`, `Warning` on `stderr`, and 4-frame `30 FPS` `.mp4` output.
-* **`TC-13` (`test_cli_exit_code_1_on_bad_arguments_or_missing_files`):** Feeds missing args, `.avi` extension, and missing `.nrrd` → checks exit code `1`.
-* **`TC-14` (`test_cli_exit_code_2_on_bad_csv_row_creates_no_video`):** Feeds a CSV whose 2nd plane has a `50%` leg mismatch → checks exit code `2` and confirms **no** `.mp4` file was created.
-* **`TC-15` (`test_500_cubed_projection_fps_benchmark`):** Slices a $500^3$ `uint8` cube (`500×500` plane) for 1 warm-up + 3 timed runs of 30 frames → checks `median_fps >= 30.0`.
+---
+
+#### C. `tests/test_plane_parser.py` — Checks `PlaneParser` (`src/plane_parser.py`)
+
+* **`test_parse_professor_sample_csv`** (`TC-06`)
+  * **Sent to:** `PlaneParser.parse()` in `src/plane_parser.py`
+  * **Input:** `data/sample_planes.csv` (4 mixed triangle/trapezoid rows; line 4 has a `4.12%` leg diff).
+  * **Expected Output:** Ordered list `[TrianglePlane, TrapezoidPlane, TrianglePlane, TrapezoidPlane]` and 1 warning naming `"Row 4"`.
+* **`test_skip_blank_lines_and_header`** (`TC-06`)
+  * **Sent to:** `PlaneParser.parse()` in `src/plane_parser.py`
+  * **Input:** CSV file with empty lines and a header row before 1 valid triangle on line 4.
+  * **Expected Output:** Returns 1 `TrianglePlane` with `row_index == 4` and `warnings == []`.
+* **`test_reject_wrong_column_count`** (`TC-07`)
+  * **Sent to:** `PlaneParser._parse_row()` in `src/plane_parser.py`
+  * **Input:** CSV file where line 2 has 10 columns instead of 13.
+  * **Expected Output:** Raises `PlaneError` (`exit_code == 2`, `row_index == 2`).
+* **`test_reject_point_count_mismatch_on_triangle_row`** (`TC-07`)
+  * **Sent to:** `PlaneParser._parse_row()` in `src/plane_parser.py`
+  * **Input:** CSV row on line 2 with point count `3` (triangle) and extra numbers in columns 11–13.
+  * **Expected Output:** Raises `PlaneError` (`exit_code == 2`, `row_index == 2`).
+* **`test_reject_missing_fourth_point_on_trapezoid_row`** (`TC-07`)
+  * **Sent to:** `PlaneParser._parse_floats()` in `src/plane_parser.py`
+  * **Input:** CSV row on line 2 with point count `4` (trapezoid) and empty columns 11–13.
+  * **Expected Output:** Raises `PlaneError` (`exit_code == 2`, `row_index == 2`).
+* **`test_reject_non_numeric_coordinate`** (`TC-07`)
+  * **Sent to:** `PlaneParser._parse_floats()` in `src/plane_parser.py`
+  * **Input:** CSV row on line 2 containing `"abc"` instead of a coordinate number.
+  * **Expected Output:** Raises `PlaneError` (`exit_code == 2`, `row_index == 2`).
+* **`test_reject_empty_csv_file`** (`TC-07`)
+  * **Sent to:** `PlaneParser.parse()` in `src/plane_parser.py`
+  * **Input:** CSV file containing only the text header and zero plane rows.
+  * **Expected Output:** Raises `PlaneError` (`exit_code == 2`).
+
+---
+
+#### D. `tests/test_projection_engine.py` — Checks `ProjectionEngine` (`src/projection_engine.py`)
+
+* **`test_vectorized_matches_sequential_reference_triangle`** (`TC-08`)
+  * **Sent to:** `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+  * **Input:** `32×32×32` `uint8` analytical cube and an angled `TrianglePlane`.
+  * **Expected Output:** 2D `uint8` slice matching the simple `for`-loop reference pixel-for-pixel, with `0` in top corners outside the triangle.
+* **`test_vectorized_matches_sequential_reference_trapezoid`** (`TC-08`)
+  * **Sent to:** `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+  * **Input:** `32×32×32` `uint8` analytical cube and an angled `TrapezoidPlane`.
+  * **Expected Output:** 2D `uint8` slice matching the simple `for`-loop reference pixel-for-pixel.
+* **`test_out_of_volume_coordinates_masked_to_zero`** (`TC-09`)
+  * **Sent to:** `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+  * **Input:** `16×16×16` cube filled with `200`, sliced by one negative-space triangle and one half-inside triangle.
+  * **Expected Output:** Outside slice is all `0`s (no crash); half-inside slice has `200` inside and `0` outside.
+
+---
+
+#### E. `tests/test_video_exporter.py` — Checks `VideoExporter` (`src/video_exporter.py`)
+
+* **`test_normalize_frame_uint8_unchanged`** (`TC-10`)
+  * **Sent to:** `VideoExporter.normalize_frame(frame, vmax)` in `src/video_exporter.py`
+  * **Input:** 2D `uint8` array `[[0, 50, 200]]` and `vmax=200`.
+  * **Expected Output:** Exact same `uint8` array `[[0, 50, 200]]` without rescaling.
+* **`test_normalize_frame_uint16_and_uint32_global_vmax`** (`TC-10`)
+  * **Sent to:** `VideoExporter.normalize_frame(frame, vmax)` in `src/video_exporter.py`
+  * **Input:** `uint16` `[[0, 500, 1000]]` (`vmax=1000`), `uint32` `[[0, 50000, 100000]]` (`vmax=100000`), and all-zeros (`vmax=0`).
+  * **Expected Output:** `16/32-bit` arrays scale to `uint8` `[[0, 128, 255]]`; all-zero input returns all `0`s.
+* **`test_pad_frame_centers_with_black_border`** (`TC-10`)
+  * **Sent to:** `VideoExporter.pad_frame(frame, canvas_height, canvas_width)` in `src/video_exporter.py`
+  * **Input:** Small `2×4` white (`255`) array and target canvas `6×8`.
+  * **Expected Output:** `6×8` `uint8` array with the `2×4` white rectangle centered at rows `2..3`, cols `2..5` and `0` borders.
+* **`test_video_exporter_writes_readable_mp4_stream`** (`TC-11`)
+  * **Sent to:** `VideoExporter` (`open`, `write_frame`, `close`) in `src/video_exporter.py`
+  * **Input:** Two `uint16` frames (`20×30` and `40×50`) with `canvas=(40, 50)` and `vmax=1000`.
+  * **Expected Output:** Non-empty `out.mp4` file that opens in OpenCV with `2` frames, size `40×50`, and `30.0 FPS`.
+
+---
+
+#### F. `tests/test_cli_demo.py` & `tests/test_benchmark_fps.py` — Checks `Ex0.py`, `AppController`, & Speed
+
+* **`test_cli_valid_demo_run_end_to_end`** (`TC-12`)
+  * **Sent to:** `Ex0.py` CLI subprocess → `AppController.run()` in `src/app_controller.py`
+  * **Input:** Valid `uint8` `.nrrd` path, 4-row `planes.csv` path, and output `demo.mp4` path.
+  * **Expected Output:** Exit code `0`, warning printed to `stderr`, and playable `demo.mp4` with `4` frames at `30.0 FPS`.
+* **`test_cli_exit_code_1_on_bad_arguments_or_missing_files`** (`TC-13`)
+  * **Sent to:** `Ex0.main()` → `AppController.validate_cli_args()` in `src/app_controller.py`
+  * **Input:** `0` args, `2` args, `.avi` output path instead of `.mp4`, and missing `.nrrd` path.
+  * **Expected Output:** Returns exit code `1` for every bad call.
+* **`test_cli_exit_code_2_on_bad_csv_row_creates_no_video`** (`TC-14`)
+  * **Sent to:** `Ex0.main()` → `AppController.run()` & `PlaneParser.parse()`
+  * **Input:** Valid `.nrrd` path and a `.csv` where the 2nd plane has a `50%` leg mismatch (`> 10%`).
+  * **Expected Output:** Returns exit code `2` and creates **no** `.mp4` file on disk.
+* **`test_500_cubed_projection_fps_benchmark`** (`TC-15`)
+  * **Sent to:** `ProjectionEngine.project(volume, plane)` in `src/projection_engine.py`
+  * **Input:** `500×500×500` `uint8` cube and a `500×500` `TrianglePlane` (1 warm-up + 3 runs of 30 slices).
+  * **Expected Output:** `median_fps >= 30.0` (`<= 33.3 ms` per frame).
 
 ---
 
 ### 2.2 Master STD Summary Table (`TC-01`–`TC-15`)
 
-| TC ID | Automated Test Function(s) | Verifies | Input Data | What It Checks | Status |
+| TC ID | Automated Test Function(s) | Verifies | Input Data | Expected Output | Status |
 |---|---|---|---|---|---|
 | **TC-01** | `test_load_valid_uint8_volume`<br/>`test_load_valid_uint16_and_uint32_volumes` | `FR-2`, `FR-8` | `32³` `uint8`, `16×20×24` `uint16` (`vmax=4000`), `16³` `uint32` (`vmax=100000`) NRRDs. | Exact `(x, y, z)` shape/values, exact `vmax`, and read-only lock (`writeable == False`). | **Pass** |
 | **TC-02** | `test_promote_non_negative_signed_integer_volumes` | `FR-2` | `16³` `int16` NRRD with values `0..279`. | Promoted cleanly to `uint16` with `vmax == 279`. | **Pass** |
