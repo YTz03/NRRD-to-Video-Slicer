@@ -145,6 +145,7 @@ Following the course Software Engineering documentation chain, each engineering 
 NRRD-to-Video-Slicer/
 ├── Ex0.py                     # CLI entry point: python Ex0.py <file.nrrd> <file.csv> <file.mp4>
 ├── README.md                  # Repository overview, SOW scope, quick start, and doc index
+├── CHANGELOG.md               # Record of project and documentation updates
 ├── docs/                      # Software Engineering Documentation Chain
 │   ├── SRS.md                 # Software Requirements Specification & Use Cases
 │   ├── SDD.md                 # Software Design Document (Architecture & ADRs)
